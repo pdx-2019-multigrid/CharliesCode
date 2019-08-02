@@ -11,7 +11,7 @@ using namespace linalgcpp;
 
 
 Vector<double> entrywise_mult(const Vector<double>& a, const Vector<double>& b){
-	//assert a.size()==b.size()
+	//assert (a.size()==b.size());
 	Vector<double> c(a.size());
 	for(int k=0;k<a.size();++k){
 		c[k]=a[k]*b[k];
@@ -20,7 +20,7 @@ Vector<double> entrywise_mult(const Vector<double>& a, const Vector<double>& b){
 }
 
 Vector<double> entrywise_inv(const Vector<double>& a){
-	//assert a.size()==b.size()
+	//assert (a.size()==b.size());
 	Vector<double> c(a.size());
 	for(int k=0;k<a.size();++k){
 		c[k]=1.0/a[k];
@@ -30,6 +30,7 @@ Vector<double> entrywise_inv(const Vector<double>& a){
 
 //M=D+L, the lower triangular system (forward Gauss-Seidel)
 Vector<double> DLsolver(const SparseMatrix<double>& M, Vector<double> b){
+	//assert(M.Rows()==M.Cols()&&M.Rows()==b.size());
 	for(int i=0;i<M.Rows();++i){
 		std::vector<int> indices = M.GetIndices(i);
 		std::vector<double> data = M.GetData(i);
@@ -51,6 +52,7 @@ Vector<double> DLsolver(const SparseMatrix<double>& M, Vector<double> b){
 
 //solve the upper triangular system (backward Gauss-Seidel)
 Vector<double> DUsolver(const SparseMatrix<double>& MT, Vector<double> b){
+	//assert(MT.Rows()==MT.Cols()&&MT.Rows()==b.size());
 	for(int i=MT.Rows()-1;i>=0;--i){
 		std::vector<int> indices = MT.GetIndices(i);
 		std::vector<double> data = MT.GetData(i);
@@ -89,6 +91,7 @@ Vector<double> Solve_Gauss_Seidel(const SparseMatrix<double>& A, Vector<double> 
 }
 
 Vector<double> Solve_Jacobian(const SparseMatrix<double>& A, Vector<double> r){
+	//assert(M.Rows()==M.Cols()&&M.Rows()==b.size());
 	int n = A.Cols();
 	Vector<double> diag(&A.GetDiag()[0],n);
 	for(int i=0;i<n;++i){

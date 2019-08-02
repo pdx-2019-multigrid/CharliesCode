@@ -1,7 +1,7 @@
 #define watch(x) std::cout << (#x) << " is " << (x) << std::endl
 #define log(x) std::cout << x << std::endl
 #include "linalgcpp.hpp"
-
+#include <omp.h>
 
 using namespace linalgcpp;
 
@@ -103,7 +103,8 @@ SparseMatrix<int> getP(const SparseMatrix<double>& A, int Ncoarse){
 			P.Add(i,col++,1);
 		}
 	}
-	SparseMatrix Ps = P.ToSparse();
+	double x=omp_get_wtime();
+	SparseMatrix<int> Ps = P.ToSparse();
 	if(col<=Ncoarse){
 		return Ps;
 	}else{
