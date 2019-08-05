@@ -197,7 +197,7 @@ int main()
 	
 	SparseMatrix<double> Laplacian = getLaplacian("data/6473.edges",0,false);
     //Laplacian.PrintDense("LAP");
-	std::cout<<"read"<<std::endl;
+	//std::cout<<"read"<<std::endl;
 	SparseMatrix<double> RLap = getReducedLaplacian(Laplacian);
 	//RLap.PrintDense("reduced Laplacian");
 	
@@ -215,13 +215,51 @@ int main()
     coarse_mat.PrintDense();
 	*/
 	
+	/**
+	DenseMatrix A = RandSPD(100,10);
+	Vector<double> b=RandVect(100,300);
 	
-	Vector<double> b=RandVect(RLap.Cols(),100);
+	
+	std::cout << std::setw(7) << "trial#" << std::setw(15) << "para" << std::setw(15) << "no para" << std::endl << std::endl;
+    double ini_time;
+	double end_time;
+	for(int i=1;i<=4;i++){
+		ini_time = omp_get_wtime();
+		ParaMult(A,b);
+		end_time = omp_get_wtime();
+		std::cout << std::setw(7) << i << std::setw(15) << end_time-ini_time;
+		
+		ini_time = omp_get_wtime();
+		Mult(A,b);
+		end_time = omp_get_wtime();
+		std::cout << std::setw(15) << end_time-ini_time << std::endl;
+    
+	}
+	*/
+	
+	
+	Vector<double> b=RandVect(RLap.Cols(),300);
 	//b.Print("b");
 	
 	std::cout<<"=======solving by regular CG======="<<std::endl;
-	CG(RLap,b,1000,1e-9);//.Print("sol:");
+	std::cout << std::setw(7) << "trial#" << std::setw(15) << "para" << std::setw(15) << "no para" << std::endl << std::endl;
+    double ini_time;
+	double end_time;
+	for(int i=1;i<=4;i++){
+		ini_time = omp_get_wtime();
+		CG(RLap,b,1000,1e-9,true);//.Print("sol:");
+		end_time = omp_get_wtime();
+		std::cout << std::setw(7) << i << std::setw(15) << end_time-ini_time;
+		
+		ini_time = omp_get_wtime();
+		CG(RLap,b,1000,1e-9,false);//.Print("sol:");
+		end_time = omp_get_wtime();
+		std::cout << std::setw(15) << end_time-ini_time << std::endl;
+    
+	}
 	
+	
+	/**
 	std::cout<<"=======solving by jacobian PCG======="<<std::endl;
     PCG(RLap,b,Solve_Jacobian,1000,1e-9);
     //sol.Print("sol:");
@@ -234,7 +272,7 @@ int main()
 	
 	std::cout<<"=======start executing multi-level======="<<std::endl;
 	PCG_ML(RLap,b,100,1e-9,7,std::cbrt(RLap.Cols()));
-	
+	*/
 	
 	//test_lubys();
 }

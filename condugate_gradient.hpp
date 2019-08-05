@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include "linalgcpp.hpp"
+#include "parallel_utility.hpp"
 
 using namespace linalgcpp;
 
@@ -145,7 +146,7 @@ Vector<double> PCG(const SparseMatrix<double>& A, const Vector<double>& b, Vecto
     @param max_iter maximum number of iteration before exit
 	@param tol epsilon
 */
-Vector<double> CG(const SparseMatrix<double>& A, const Vector<double>& b, int max_iter,double tol){
+Vector<double> CG(const SparseMatrix<double>& A, const Vector<double>& b, int max_iter,double tol, bool para){
     //assert A is s.p.d.
     int n = A.Cols();
     Vector<double> x(n,0.0);
@@ -156,7 +157,8 @@ Vector<double> CG(const SparseMatrix<double>& A, const Vector<double>& b, int ma
     double delta = delta0, deltaOld, tau, alpha;
 
     for(int k=0;k<max_iter;k++){
-        g = A.Mult(p);
+		if(para)g = paraMult(A,p);
+		else g = Mult(A,p);
         tau = p.Mult(g);
         alpha = delta / tau;
         x = x + (alpha * p);
@@ -167,7 +169,7 @@ Vector<double> CG(const SparseMatrix<double>& A, const Vector<double>& b, int ma
 		//std::cout<<"delta at iteration "<<k<<" is "<<delta<<std::endl;
     
         if(delta < tol * tol * delta0){
-            std::cout<<"converge at iteration "<<k<<std::endl;
+            //std::cout<<"converge at iteration "<<k<<std::endl;
             return x;
         }
         p = r + ((delta / deltaOld)* p);
