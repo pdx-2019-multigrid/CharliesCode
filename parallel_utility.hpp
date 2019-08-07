@@ -114,9 +114,183 @@ Vector<double> Mult(const DenseMatrix& A, const Vector<double>& b){
 	return Ab;
 }
 
+//===============Maxtrix-Vector=====================
+
+
+template <typename T, typename U, typename V>
+SparseMatrix<T> paraMult(const SparseMatrix<U>& lhs, const SparseMatrix<V>& rhs)
+{
+    assert(rhs.Rows() == lhs.Cols());
+	
+	int cols_=lhs.Cols();
+	int rows_=lhs.Rows();
+	
+	const std::vector<int>& indptr_=lhs.GetIndptr();
+    const std::vector<int>& indices_=lhs.GetIndices();
+	const std::vector<U>& data_=lhs.GetData();
+	
+	const std::vector<int>& rhs_indptr = rhs.GetIndptr();
+    const std::vector<int>& rhs_indices = rhs.GetIndices();
+    const std::vector<V>& rhs_data = rhs.GetData();
+	
+	std::vector<int> out_indptr(rows_ + 1);
+    out_indptr[0] = 0;
+
+    
+	#pragma omp parallel
+	{
+	//printf("using %d threads\n",omp_get_num_threads());
+	std::vector<int> marker(rhs.Cols());
+    std::fill(begin(marker), end(marker), -1);
+	#pragma omp for
+    for (int i = 0; i < rows_; ++i){
+		int row_nnz=0;
+        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j){
+			for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k){
+				if (marker[rhs_indices[k]] != static_cast<int>(i)){
+					marker[rhs_indices[k]] = i;
+					++row_nnz;
+				}
+			}
+		}
+		out_indptr[i + 1] = row_nnz;
+	}
+	
+	}
+	
+	for(int i = 0; i < rows_; ++i){
+		out_indptr[i + 1]+=out_indptr[i];
+	}
+
+    
+    std::vector<int> out_indices(out_indptr[rows_]);
+    std::vector<T> out_data(out_indptr[rows_]);
+	
+	
+	#pragma omp parallel
+	{
+	
+	std::vector<int> marker(rhs.Cols());
+	std::fill(begin(marker), end(marker), -1);
+    
+	int total = 0;
+	int zero_ptr = -1;
+	#pragma omp for
+    for (int i = 0; i < rows_; ++i)
+    {
+        int row_nnz = total;
+		// at this point, all entries in marker <= row_nnz
+		if(zero_ptr==-1){
+			zero_ptr=out_indptr[i];
+		}
+		
+        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+        {
+            for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k)
+            {
+                if (marker[rhs_indices[k]] < row_nnz)
+                {
+                    marker[rhs_indices[k]] = total;
+                    out_indices[zero_ptr+total] = rhs_indices[k];
+                    out_data[zero_ptr+total] = data_[j] * rhs_data[k];
+
+                    total++;
+                }
+                else
+                {
+                    out_data[zero_ptr+marker[rhs_indices[k]]] += data_[j] * rhs_data[k];
+                }
+            }
+        }
+    }
+	
+	}
+    return SparseMatrix<T>(std::move(out_indptr), std::move(out_indices), std::move(out_data),
+                            rows_, rhs.Cols());
+}
+
+
+
+template <typename T, typename U, typename V>
+SparseMatrix<T> Mult(const SparseMatrix<U>& lhs, const SparseMatrix<V>& rhs)
+{
+    assert(rhs.Rows() == lhs.Cols());
+
+	int cols_=lhs.Cols();
+	int rows_=lhs.Rows();
+	
+	const std::vector<int>& indptr_=lhs.GetIndptr();
+    const std::vector<int>& indices_=lhs.GetIndices();
+	const std::vector<U>& data_=lhs.GetData();
+	
+	std::vector<int> marker(rhs.Cols());
+    std::fill(begin(marker), end(marker), -1);
+
+    std::vector<int> out_indptr(rows_ + 1);
+    out_indptr[0] = 0;
+
+    int out_nnz = 0;
+
+    const std::vector<int>& rhs_indptr = rhs.GetIndptr();
+    const std::vector<int>& rhs_indices = rhs.GetIndices();
+    const std::vector<V>& rhs_data = rhs.GetData();
+
+    for (int i = 0; i < rows_; ++i)
+    {
+        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+        {
+            for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k)
+            {
+                if (marker[rhs_indices[k]] != static_cast<int>(i))
+                {
+                    marker[rhs_indices[k]] = i;
+                    ++out_nnz;
+                }
+            }
+        }
+
+        out_indptr[i + 1] = out_nnz;
+    }
+	
+	
+    std::fill(begin(marker), end(marker), -1);
+
+    std::vector<int> out_indices(out_nnz);
+    std::vector<T> out_data(out_nnz);
+	
+	
+    int total = 0;
+
+    for (int i = 0; i < rows_; ++i)
+    {
+        int row_nnz = total;
+
+        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+        {
+            for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k)
+            {
+                if (marker[rhs_indices[k]] < row_nnz)
+                {
+                    marker[rhs_indices[k]] = total;
+                    out_indices[total] = rhs_indices[k];
+                    out_data[total] = data_[j] * rhs_data[k];
+
+                    total++;
+                }
+                else
+                {
+                    out_data[marker[rhs_indices[k]]] += data_[j] * rhs_data[k];
+                }
+            }
+        }
+    }
+
+    return SparseMatrix<T>(std::move(out_indptr), std::move(out_indices), std::move(out_data),
+                            rows_, rhs.Cols());
+}
+
 /**
 TODO:
 A^Tx
-AB
 A^TB
 */

@@ -5,6 +5,8 @@
 #include "lubys_partition.hpp"
 #include "condugate_gradient.hpp"
 #include <cmath>
+#include <chrono>
+#include <ctime>
 
 using namespace linalgcpp;
 
@@ -191,6 +193,30 @@ void test_lubys(){
 	Ac1.PrintDense("Ac1");
 }
 
+void test_paraMult(){
+	SparseMatrix<double> Laplacian = getLaplacian("data/6473.edges",0,false);
+	SparseMatrix<double> LT = Laplacian.Transpose();
+	
+	std::cout<<"=======Matrix-Matrix Mult======="<<std::endl;
+	std::cout << std::setw(7) << "trial#" << std::setw(15) << "para" << std::setw(15) << "no para" << std::endl << std::endl;
+    double ini_time;
+	double end_time;
+	for(int i=1;i<=4;i++){
+		ini_time = omp_get_wtime();
+		paraMult<double,double,double>(LT,Laplacian);
+		end_time = omp_get_wtime();
+		std::cout << std::setw(7) << i << std::setw(15) << end_time-ini_time;
+		
+		ini_time = omp_get_wtime();
+		Mult<double,double,double>(LT,Laplacian);
+		end_time = omp_get_wtime();
+		std::cout << std::setw(15) << end_time-ini_time << std::endl;
+    
+	}
+	
+	
+}
+
 int main()
 {
     //SparseMatrix<double> fine_adjacency = ReadMTXList("data/simple_graph_1.edges");
@@ -238,25 +264,71 @@ int main()
 	*/
 	
 	
+	/**
 	Vector<double> b=RandVect(RLap.Cols(),300);
 	//b.Print("b");
-	
+	//Timer Timer1, Timer2;
 	std::cout<<"=======solving by regular CG======="<<std::endl;
 	std::cout << std::setw(7) << "trial#" << std::setw(15) << "para" << std::setw(15) << "no para" << std::endl << std::endl;
-    double ini_time;
-	double end_time;
+    std::chrono::high_resolution_clock::time_point ini_time;
+	std::chrono::high_resolution_clock::time_point end_time;
+	std::chrono::duration<double> time_span;
 	for(int i=1;i<=4;i++){
-		ini_time = omp_get_wtime();
+		ini_time = std::chrono::high_resolution_clock::now();
 		CG(RLap,b,1000,1e-9,true);//.Print("sol:");
-		end_time = omp_get_wtime();
-		std::cout << std::setw(7) << i << std::setw(15) << end_time-ini_time;
+		end_time = std::chrono::high_resolution_clock::now();
+		time_span = end_time-ini_time;
+		std::cout << std::setw(7) << i << std::setw(15) << time_span.count();
 		
-		ini_time = omp_get_wtime();
+		ini_time = std::chrono::high_resolution_clock::now();
 		CG(RLap,b,1000,1e-9,false);//.Print("sol:");
-		end_time = omp_get_wtime();
-		std::cout << std::setw(15) << end_time-ini_time << std::endl;
+		end_time = std::chrono::high_resolution_clock::now();
+		time_span = end_time-ini_time;
+		std::cout << std::setw(15) << time_span.count() << std::endl;
     
 	}
+	*/
+	
+	/**
+	Vector<double> b=RandVect(RLap.Cols(),300);
+	//b.Print("b");
+	std::cout<<"=======solving by regular CG======="<<std::endl;
+	std::cout << std::setw(7) << "trial#" << std::setw(30) << "para(wtime/systemtime)" << std::setw(30) << "no para(wtime/systemtime)" << std::endl << std::endl;
+    
+	double ini_time;
+	double end_time;
+	
+	std::chrono::high_resolution_clock::time_point t1;
+	std::chrono::high_resolution_clock::time_point t2;
+	std::chrono::duration<double> time_span;
+	
+	for(int i=1;i<=4;i++){
+		ini_time = omp_get_wtime();
+		t1 = std::chrono::high_resolution_clock::now();
+		
+		CG(RLap,b,1000,1e-9,true);//.Print("sol:");
+		
+		end_time = omp_get_wtime();
+		t2 = std::chrono::high_resolution_clock::now();
+		
+		time_span = t2-t1;
+		std::cout << std::setw(7) << i << std::setw(20) << end_time-ini_time<<'/'<<time_span.count();
+		
+		ini_time = omp_get_wtime();
+		t1 = std::chrono::high_resolution_clock::now();
+		
+		CG(RLap,b,1000,1e-9,false);//.Print("sol:");
+		
+		end_time = omp_get_wtime();
+		t2 = std::chrono::high_resolution_clock::now();
+		
+		time_span = t2-t1;
+		std::cout << std::setw(20) << end_time-ini_time <<'/'<<time_span.count()<< std::endl;
+    
+	}
+	*/
+	
+	test_paraMult();
 	
 	
 	/**
