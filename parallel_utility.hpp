@@ -136,9 +136,11 @@ SparseMatrix<T> paraMult(const SparseMatrix<U>& lhs, const SparseMatrix<V>& rhs)
 	std::vector<int> out_indptr(rows_ + 1);
     out_indptr[0] = 0;
 
-    
+    omp_set_num_threads(8);
+
 	#pragma omp parallel
 	{
+
 	//printf("using %d threads\n",omp_get_num_threads());
 	std::vector<int> marker(rhs.Cols());
     std::fill(begin(marker), end(marker), -1);
@@ -147,7 +149,7 @@ SparseMatrix<T> paraMult(const SparseMatrix<U>& lhs, const SparseMatrix<V>& rhs)
 		int row_nnz=0;
         for (int j = indptr_[i]; j < indptr_[i + 1]; ++j){
 			for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k){
-				if (marker[rhs_indices[k]] != static_cast<int>(i)){
+				if (marker[rhs_indices[k]] != static_cast<int>(i)){//<=================WHY static_cast?
 					marker[rhs_indices[k]] = i;
 					++row_nnz;
 				}
