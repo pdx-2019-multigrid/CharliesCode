@@ -114,7 +114,7 @@ Vector<double> Mult(const DenseMatrix& A, const Vector<double>& b){
 	return Ab;
 }
 
-//===============Maxtrix-Vector=====================
+//===============Maxtrix*Matrix=====================
 
 
 template <typename T, typename U, typename V>
